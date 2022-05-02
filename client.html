@@ -1,0 +1,251 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<html>
+	<head>
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.3/moment.min.js"></script>
+		<script src="http://d3js.org/d3.v4.min.js"></script>
+
+
+		<script type="text/javascript">
+
+				// Websocket stuff
+
+				var serverAndPort;
+				var latestValue = 0.0;
+				var parameterName = "";
+				var dateText = "";
+
+				function onload()
+				{
+					serverAndPort = document.getElementById('serverAndPortInput');
+				}
+
+				function setServerAndPort()
+				{
+					if ("WebSocket" in window)
+					{
+						//alert("Connecting to ws://" + serverAndPort.value);
+						// Let us open a web socket
+						var webSocket = new WebSocket("ws://" + serverAndPort.value);
+					
+						webSocket.onopen = function()
+						{
+							// Web Socket is connected, send data using send()
+							webSocket.send("Websocket webpage alive");
+							//alert("Message is sent...");
+						};
+					
+						webSocket.onmessage = function(evt) 
+						{ 
+							var received_msg = evt.data;
+							var json = JSON.parse(received_msg);
+
+							if (parameterName == "")
+							{
+								// This is the first reading we've received.
+								parameterName = json.pointId;
+							}
+
+							if (parameterName == json.pointId)
+							{
+								// We ignore any reading which doesn't come from the first
+								// point we received readings from.
+								latestValue = parseFloat(json.value);
+
+								var momentObject = moment(json.timestamp);
+								dateText = momentObject.format("dddd, MMMM Do, YYYY, h:mm:ssa");
+							}
+						};
+					
+						webSocket.onclose = function()
+						{ 
+							// websocket is closed.
+							alert("Connection is closed..."); 
+						};
+						
+						window.onbeforeunload = function(event) 
+						{
+							socket.close();
+						};
+					}
+					else
+					{
+						 // The browser doesn't support WebSocket
+						 alert("WebSocket not supported by your browser.");
+					}
+				}
+
+		</script>
+
+		<style>
+
+			body 
+			{
+				font-family: 'Open Sans', sans-serif;
+			}
+
+			.line 
+			{
+				fill: none;
+				stroke: #05a;
+				stroke-width: 1.5px;
+			}
+
+		</style>
+		
+	</head>
+	<body onload="onload();">
+	 
+		Server name and port:
+		<div class="input">
+			<input 
+				type="text" 
+				name="enter" 
+				class="enter" 
+				value="localhost:5045" 
+				id="serverAndPortInput"/>
+			<input type="button" value="Go!" onclick="setServerAndPort();"/>
+		</div>
+		<div class="displayBox">
+
+			<svg width="400" height="400"></svg>
+
+		</div>
+
+		<script>
+
+		// Widget
+
+		var zeroFn = function(d, i) { return 0.0; };
+
+		var expectedDataRateInHz = 10.0;
+		var expectedDataIntervalInMilliseconds = 1000.0/expectedDataRateInHz;
+
+		var wantSmoothLine = false;
+    var duration = expectedDataIntervalInMilliseconds; // milliseconds
+    var now = new Date(Date.now());
+		var numSamples = 200; // number of samples displayed at a time
+		var data = d3.range(numSamples).map(zeroFn); // data initialization
+
+		var canvas = d3.select("svg"); // get a var representing the svg element
+		var margin = {top: 20, right: 20, bottom: 20, left: 40};
+		var width = Number(canvas.attr("width")) - margin.left - margin.right;
+		var height = Number(canvas.attr("height")) - margin.top - margin.bottom;
+		 
+		// Create a <g> element under svg
+		var group = canvas.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		// Define the scale of x
+		var x = d3.scaleTime()
+				.domain([now - (numSamples - 2) * duration, now - duration])
+				.range([0, width]);
+
+		// Define the scale of y
+		var y = d3.scaleLinear()
+				.domain([-0.1, 0.1])
+				.range([height, 0]);
+
+		var line = d3.line()
+				.x(function(d, i) { return x(now - (numSamples - 1 - i) * duration); })
+				.y(function(d, i) { return y(d); });
+
+		if (wantSmoothLine)
+		{
+			line.curve(d3.curveBasis);
+		}
+
+		group.append("defs").append("clipPath")
+				.attr("id", "clip")
+			.append("rect")
+				.attr("width", width)
+				.attr("height", height);
+
+		var xAxis = group.append("g")
+				.attr("class", "axis axis--x")
+//				.attr("transform", "translate(0," + y(0) + ")") // at y = 0
+				.attr("transform", "translate(0," + height + ")") // at bottom
+				.call(d3.axisBottom(x));
+
+		var yAxis = group.append("g")
+				.attr("class", "axis axis--y")
+				.call(d3.axisLeft(y));
+
+		group.append("g")
+				.attr("clip-path", "url(#clip)")
+			.append("path")
+				.datum(data)
+				.attr("class", "line")
+			.transition()
+				.duration(duration) // milliseconds
+				.ease(d3.easeLinear)
+				.on("start", tick);
+
+		var parameterNameFontSize = 12;
+		var parameterNameText = group.append("text")
+				.attr("text-anchor", "end")
+				.attr("x", width)
+				.attr("y", margin.top + parameterNameFontSize + 10)
+				.attr("font-family", "Open Sans")
+				.attr("font-size", parameterNameFontSize)
+				.text("parameter name");
+
+		var currentValueFontSize = 24;
+		var currentValueText = group.append("text")
+				.attr("text-anchor", "end")
+				.attr("x", width)
+				.attr("y", margin.top)
+				.attr("font-family", "Open Sans")
+				.attr("font-size", currentValueFontSize)
+				.text("current value");
+
+		var dateTextFontSize = 12;
+		var dateTextObject = group.append("text")
+				.attr("text-anchor", "end")
+				.attr("x", width)
+				.attr("y", height - parameterNameFontSize)
+				.attr("font-family", "Open Sans")
+				.attr("font-size", dateTextFontSize)
+				.text("date text");
+
+		function tick() {
+
+			// Push a new data point onto the back.
+			data.push(latestValue);
+
+			parameterNameText.text(parameterName);
+			currentValueText.text(latestValue);
+			dateTextObject.text(dateText);
+
+			now = new Date();
+			x.domain([now - (numSamples - 2) * duration, now - duration]);
+
+			var transition = d3.transition()
+				.duration(duration)
+				.ease(d3.easeLinear);
+
+			// slide the x-axis left
+			xAxis.transition(transition)
+				.call(d3.axisBottom(x));
+
+			// Redraw the line.
+			d3.select(this)
+					.attr("d", line)
+					.attr("transform", null);
+
+			// Slide the line left.
+			d3.active(this)
+					//.attr("transform", "translate(" + x(0) + ",0)")
+					.attr("transform", "translate(" + x(now - (numSamples - 1) * duration) + ")")
+				.transition()
+					.on("start", tick);
+
+			// Pop the old data point off the front.
+			data.shift();
+
+		}
+
+		</script>
+	</body>
+</html>
