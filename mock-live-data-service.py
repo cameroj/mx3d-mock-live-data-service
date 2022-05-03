@@ -130,10 +130,7 @@ class ReplaySensor():
 
 			for row in csv_reader:
 
-				try:
-					timestamp = datetime.strptime(row[0][:-6], '%Y-%m-%d %H:%M:%S.%f')
-				except:
-					timestamp = datetime.strptime(row[0][:-6], '%Y-%m-%d %H:%M:%S')
+				timestamp = datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f')
 
 				value = row[1]
 
@@ -195,8 +192,14 @@ def main():
 				#'TEST1_1hr_10Hz_data.csv', 'TEST2_1hr_10Hz_data.csv'
 				'A01Y_1hr_10Hz_data.csv',
 				'A02Y_1hr_10Hz_data.csv',
+				'A06Y_1hr_10Hz_data.csv',
+				'A07Y_1hr_10Hz_data.csv',
 				'LC01_1hr_10Hz_data.csv',
+				'LC02_1hr_10Hz_data.csv',
+				'LC03_1hr_10Hz_data.csv',
+				'LC04_1hr_10Hz_data.csv',
 				'SG21_1hr_10Hz_data.csv',
+				'SG23_1hr_10Hz_data.csv',
 				'T06_1hr_10Hz_data.csv'
 			]
 

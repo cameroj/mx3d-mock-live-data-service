@@ -1,11 +1,14 @@
 # mx3d-mock-live-data-service
+
 Reads sensor readings from .csv files, and replays them at 10Hz through a 
 websocket as if they are coming live from a sensor. 
 This project is currently hard-coded to read from specific .csv files provided 
 as part of the 2022 MX3D Bridge Datathon, but could be modified to get readings 
 from other .csv files and play them back at a different rate. The files
-intended for use with this script are `A01Y_1hr_10Hz_data.csv`,
-`A02Y_1hr_10Hz_data.csv`, `LC01_1hr_10Hz_data.csv`, `SG21_1hr_10Hz_data.csv`,
+intended for use with this script are `A01Y_1hr_10Hz_data.csv`, 
+`A02Y_1hr_10Hz_data.csv`, `A06Y_1hr_10Hz_data.csv`, `A07Y_1hr_10Hz_data.csv`, 
+`LC01_1hr_10Hz_data.csv`, `LC02_1hr_10Hz_data.csv`, `LC03_1hr_10Hz_data.csv`, 
+`LC04_1hr_10Hz_data.csv`, `SG21_1hr_10Hz_data.csv`, `SG23_1hr_10Hz_data.csv` 
 and `T06_1hr_10Hz_data.csv`.
 
 To try:
